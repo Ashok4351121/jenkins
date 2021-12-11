@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="bddd394c-a5da-407a-b5e8-0473750a0657" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="48e4e9cf-6a02-43c0-ad25-90d593221a95" >
+		<db:oracle-connection host="localhost" user="SYSTEM" password="system"/>
+	</db:config>
+	<configuration doc:name="Configuration" doc:id="709fcbe3-de7f-43c3-9ca4-e456d44d8857" defaultErrorHandler-ref="munitError_Handler" />
+	<flow name="munitFlow" doc:id="8f0c37bf-69db-41a8-b466-7003d515ce5b" >
+		<http:listener doc:name="Listener" doc:id="b4a3b89c-c034-417e-aa5a-1138c51e5c66" config-ref="HTTP_Listener_config" path="/munit"/>
+		<db:select doc:name="Select" doc:id="1c63f6a0-1015-4775-981f-62d6b2cc9ea7" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from test]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="ea312e67-bc34-49b6-bb99-6514b59cd7cc" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="a70b82f9-dc35-42c0-a2ea-49826830a055" >
+			<when expression="#[sizeOf(payload)&gt;0]">
+				<ee:transform doc:name="Transform Message" doc:id="8e9852a9-9db8-422e-aa54-2467075e2d63" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="bc3bcde2-551c-4650-99eb-aa741e7158e9" message="condition satisfied"/>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="1eabe002-d61a-4458-aa51-acf73b88c927" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"ashok"]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="45a64009-d550-4a59-8367-2b53dfd1512f" message="no records found"/>
+			</otherwise>
+		</choice>
+	</flow>
+	<error-handler name="munitError_Handler" doc:id="bbaadb47-ed0e-41f0-a5d3-e1c8779a17d8" >
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="2a5d3b9f-6234-4d87-88bd-70222026b09d" type="ANY">
+			<ee:transform doc:name="Transform Message" doc:id="988dcff8-d418-4337-9e44-f9d2595b2a8b" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-continue>
+	</error-handler>
+</mule>
